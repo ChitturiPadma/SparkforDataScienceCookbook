@@ -1,7 +1,7 @@
 # SparkforDataScienceCookbook
 Samples for Packt Publishing's Spark for Data Science Cookbook
 
-The samples in this project were written with JDK 1.7, Scala 2.10.4, Spark 1.6.0 or Spark 2.0.2 and SBT .13.11
+The samples in this project were written with JDK 1.8, Scala 2.10.4, Spark 1.6.2 or Spark 2.0.2 and SBT .13.11
 
 1.  Big Data Analytics with Spark - RDD, Persisting RDD, Broadcast variables, DataFrames and Spark Streaming
 2.  Tricky Statistics with Spark - Sampling, Descriptive Statistics, Frequency tables, Pandas.
