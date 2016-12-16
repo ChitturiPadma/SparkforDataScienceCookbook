@@ -7,7 +7,7 @@ import org.apache.spark.SparkContext
 object SparkContextExample {
 
   def main(args: Array[String]) {
-    val stocksPath = "/home/padmac/data/Stocks/stocks.txt"
+    val stocksPath = "hdfs://namenode:9000/stocks.txt"
     val conf = new SparkConf().setAppName("Counting Lines").setMaster("spark://master:7077")
     val sc = new SparkContext(conf)
     val data = sc.textFile(stocksPath, 2)
