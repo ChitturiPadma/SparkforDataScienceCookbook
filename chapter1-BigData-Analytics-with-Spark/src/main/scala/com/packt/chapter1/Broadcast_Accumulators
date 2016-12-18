@@ -1,0 +1,26 @@
+
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkContext._
+import org.apache.spark.SparkConf
+import org.apache.spark.storage._
+
+object Broadcast_Accumulators {
+
+  def main(args:Array[String]): Unit = {
+
+    val conf = new SparkConf
+    conf.setMaster("spark://master:7077").setAppName("Broadcast_Accumulators")
+    val sc = new SparkContext(conf)
+
+    val logFile = sc.textFile("/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6/logs/spark-padmac-org.apache.spark.deploy.worker.Worker-1-F01022.out")
+      val errorLines = sc.accumulator(0)
+      val debugLines = logFile.map{line =>
+      if(line.contains("ERROR"))
+      errorLines +=1
+      if(line.contains("DEBUG"))line
+      }
+     debugLines.saveAsTextFile("hdfs://namenodeHostName:8020/data /out/ debugLines.txt")
+      println("ERROR Lines: "+ errorLines.value)
+  }
+
+}
