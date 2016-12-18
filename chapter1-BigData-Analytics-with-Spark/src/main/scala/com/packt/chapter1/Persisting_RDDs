@@ -9,7 +9,7 @@ object Persisting_RDDs {
   def main(args:Array[String]): Unit = {
 
     val conf = new SparkConf
-    conf.setMaster("spark://master:7077").setAppName("PairRDD_transformations")
+    conf.setMaster("spark://master:7077").setAppName("Persisting_RDDs")
     val sc = new SparkContext(conf)
 
     val inputRdd =
