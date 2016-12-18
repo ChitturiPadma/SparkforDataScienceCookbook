@@ -25,7 +25,7 @@ object Loading_SavingData {
   def main(args:Array[String]): Unit = {
 
     val conf = new SparkConf
-    conf.setMaster("local[2]").setAppName("PairRDD_transformations")
+    conf.setMaster("local[2]").setAppName("Loading_SavingData")
     val sc = new SparkContext(conf)
 
    val mapper = new ObjectMapper()
