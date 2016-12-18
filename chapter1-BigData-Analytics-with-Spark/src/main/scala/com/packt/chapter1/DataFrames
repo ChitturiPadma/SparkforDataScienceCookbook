@@ -1,0 +1,47 @@
+import org.apache.spark.sql._
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
+
+object DataFrames {
+
+  case class Person(name:String, age:Int)
+  def main(args:Array[String]): Unit = {
+
+    val conf=new SparkConf
+    conf.setMaster("spark://master:7077")
+    conf.setAppName("sql_Sample")
+    val sc=new SparkContext(conf)
+    val sqlcontxt=new SQLContext(sc)
+    import sqlcontxt.implicits._
+
+    val df = sqlcontxt.read.json("/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6/examples/src/main/resources/people.json")
+      df.show
+      df.printSchema
+      df.select("name").show
+      df.select("name","age").show
+      df.select(df("name"),df("age")+4).show
+      df.groupBy("age").count.show
+      df.describe("name,age")
+
+  // Load textfile as dataframe and query on the DataFrame
+    val peopleDf = sc.textFile("/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6/examples/src/main/resources/people.txt").
+      map(line => line.split(",")).map(p => Person(p(0),p(1).trim.toInt)).toDF
+
+
+      peopleDf.registerTempTable("people")
+      val teenagers = sqlcontxt.sql("select name, age from people where age >=13")
+      teenagers.map(t => "Name: " + t(0)).collect().foreach(println)
+
+    // Load a parquet file
+    val df1 = sc.makeRDD(1 to 5).map(i =>
+      (i,i*2)).toDF("single","double")
+    df1.write.parquet("/home/padmac/data/parquet_files/test_table/key=1")
+    val df2 = sc.makeRDD(6 to 10).map(i =>
+      (i,i*4)).toDF("single","triple")
+    df2.write.parquet("/home/padmac/data/parquet_files/test_table/key=2")
+    val df3 = sqlcontxt.read.parquet("/home/padmac/data/parquet_files/test_table")
+      df3.show
+  }
+
+}
