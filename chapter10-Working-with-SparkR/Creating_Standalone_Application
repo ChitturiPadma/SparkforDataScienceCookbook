@@ -1,0 +1,32 @@
+Using Spark 1.6.0:
+
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = "/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6")
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+sc <- sparkR.init(master = "spark://192.168.0.118:7077", sparkEnvir = list(spark.driver.memory="2g"))
+lines <- SparkR:::textFile(sc, "/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6/README.md")
+words <- SparkR:::flatMap(lines, function(line){
+  strsplit(line," ")[[1]]
+})
+wordCount <- SparkR:::lapply(words, function(word){
+  list(word,1L)
+})
+counts <- SparkR:::reduceByKey(wordCount,"+",numPartitions = 2)
+output <- collect(counts)
+for (wordcount in output) {
+  cat(wordcount[[1]], ": ", wordcount[[2]], "\n")
+}
+
+logFile <- "/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6/README.md"
+logData <- cache(SparkR:::textFile(sc, logFile))
+numAs <- count(SparkR:::filterRDD(logData, function(s) { grepl("a", s) }))
+numBs <- count(SparkR:::filterRDD(logData, function(s) { grepl("b", s) }))
+paste("Lines with a: ", numAs, ", Lines with b: ", numBs, sep="")
+
+Using Spark 2.0.2:
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = "/home/padmac/bigdata/spark-2.0.2-bin-hadoop2.6")
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+sparkR.session(master = "spark://master:7077", sparkConfig = list(spark.driver.memory = "2g"))
