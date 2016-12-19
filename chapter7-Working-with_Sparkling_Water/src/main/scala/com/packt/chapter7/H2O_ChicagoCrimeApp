@@ -141,9 +141,9 @@ object ChicagoCrimeAppNew_H2O {
     import sqlContext.implicits._
 
     // Loading Weather Data
-    val weatherDataTable = asDataFrame(createWeatherTable("/home/padmac/cookbook/Problems/chicagoAllWeather.csv"))
-    val censusDataTable = asDataFrame(createCensusTable("/home/padmac/cookbook/Problems/chicagoCensus.csv"))
-    val crimeDataTable = asDataFrame(createCrimeTable("/home/padmac/cookbook/Problems/chicagoCrimes10k.csv"))
+    val weatherDataTable = asDataFrame(createWeatherTable("hdfs://namenode:9000/chicagoAllWeather.csv"))
+    val censusDataTable = asDataFrame(createCensusTable("hdfs://namenode:9000/chicagoCensus.csv"))
+    val crimeDataTable = asDataFrame(createCrimeTable("hdfs://namenode:9000/chicagoCrimes10k.csv"))
 
     weatherDataTable.registerTempTable("chicagoWeather")
     censusDataTable.registerTempTable("chicagoCensus")
