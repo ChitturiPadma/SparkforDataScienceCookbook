@@ -25,8 +25,7 @@ object RecommendationSample {
     val predictedRating = model.predict(userId, movieId)
     val K=10
     val topKRecs = model.recommendProducts(userId, K)
-    println("Predicted Rating: " +predictedRating+" for User:
-    "+userId)
+    println("Predicted Rating: " +predictedRating+" for User: "+userId)
     println("top-K recommended Items:")
     println(topKRecs.mkString("\n"))
     //Evaluate the model on training data
