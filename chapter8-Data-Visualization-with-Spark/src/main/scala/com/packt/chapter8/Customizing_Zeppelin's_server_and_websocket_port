@@ -1,0 +1,2 @@
+Copy conf/zeppelin-site.xml.template to conf/zeppelin-site.xml and change the ports.
+Restart Zeppelin as- bin/zeppelin-daemon restart
