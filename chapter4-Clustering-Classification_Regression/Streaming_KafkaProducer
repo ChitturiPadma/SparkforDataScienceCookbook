@@ -1,0 +1,41 @@
+import java.util.{Date, Properties}
+import kafka.javaapi.producer.Producer
+import kafka.producer.KeyedMessage
+import kafka.producer.ProducerConfig
+import org.apache.spark.mllib.linalg.Vectors
+import scala.io.{BufferedSource, Source}
+import scala.util.Random
+
+
+object Streaming_KafkaProducer {
+  def main(args:Array[String]): Unit ={
+    val random:Random = new Random
+    val props = new Properties
+    props.put("metadata.broker.list","172.22.128.16:9092")
+    props.put("serializer.class","kafka.serializer.StringEncoder")
+    props.put("request.required.acks","1")
+    val config:ProducerConfig = new ProducerConfig(props)
+    val producer:Producer[String,String] = new
+        Producer[String,String](config)
+    val fileObject1) = getFileObject("hdfs://namenode:9000/KDD_Data.csv")
+      val lines = readFile(fileObject1)
+      while(true)
+      {val record = lines(random.nextInt(148517))
+      if(!record.contains("duration")) {
+      val parts = record.split(",").toBuffer
+      parts.remove(42)
+      parts.remove(1,3)
+      val msg = parts.toArray.mkString(",")
+      val data:KeyedMessage[String,String] = new KeyedMessage[String,String]("test",msg)
+      producer.send(data) }
+      }
+      producer.close
+
+      }
+
+  def readFile(buffer1:BufferedSource):List[String] =
+  buffer1.getLines().toList
+  def getFileObject(path1:String)
+  :BufferedSource=Source.fromFile(path1)
+
+}
