@@ -1,0 +1,59 @@
+#Creating SparkR DataFrame from R data frame using Spark 1.6.0:
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = "/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6")
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+sc <- sparkR.init(master = "spark://master:7077", sparkEnvir = list(spark.driver.memory="2g"))
+sqlContext <- sparkRSQL.init(sc)
+df <- createDataFrame(sqlContext, iris)
+head(df)
+
+#Creating SparkR DataFrame from JSON file using Spark 1.6.0:
+people <- read.df(sqlContext, "/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6/examples/src/main/resources/people.json","json")
+head(people)
+
+
+#Creating SparkR DataFrame from Hive tables using Spark 1.6.0:
+hiveContext <- sparkRHive.init(sc)
+sql(hiveContext, "CREATE TABLE IF NOT EXISTS Student (id INT, name STRING)")
+sql(hiveContext, "LOAD DATA LOCAL INPATH '~/<path>/students.txt' INTO TABLE Student")
+results <- sql(hiveContext, "FROM src SELECT key, value")
+head(results)
+
+#Creating SparkR DataFrame from CSV file using Spark 1.6.0:
+sparkPackages="com.databricks:spark-csv_2.10:1.4.0")
+sqlContext <- sparkRSQL.init(sc)
+people <- read.df(sqlContext, "~/<path>/people.csv", "csv")
+head(people)
+
+#Creating SparkDataFrame using Spark 2.0.2
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = "/home/padmac/bigdata/spark-2.0.2-bin-hadoop2.6")
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+sparkR.session(master = "local[*]", sparkConfig = list(spark.driver.memory = "2g"))
+
+#Create SparkDateFrame from a local data frame
+df <- as.DataFrame(faithful)
+head(df)
+
+#From Data Sources
+people <- read.df("/home/padmac/bigdata/spark-2.0.2-bin-hadoop2.6/examples/src/main/resources/people.json","json")
+head(people)
+printSchema(people)
+
+#Reading CSV File
+df <- read.df("/home/padmac/cookbook/Problems/Breast_CancerData.csv", "csv", header = "true", inferSchema = "true", na.strings = "NA")
+head(subset(df, select=c("clump_thickness","label")))
+#Write SparkDataFrame in parquet format
+write.df(people, path = "/home/padmac/cookbook/output/people.parquet", source = "parquet", mode = "overwrite")
+
+sparkR.session()
+
+sql("CREATE TABLE IF NOT EXISTS src (key INT, value STRING)")
+sql("LOAD DATA LOCAL INPATH 'examples/src/main/resources/kv1.txt' INTO TABLE src")
+
+# Queries can be expressed in HiveQL.
+results <- sql("FROM src SELECT key, value")
+# results is now a SparkDataFrame
+head(results)
