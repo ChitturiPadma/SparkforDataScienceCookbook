@@ -1,0 +1,31 @@
+sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev
+libopencv-dev libhdf5-serial-dev protobuf-compiler
+sudo apt-get install --no-install-recommends libboost-all-dev
+sudo apt-get install libgflags-dev libgoogle-glog-dev liblmdb-dev
+
+git clone https://github.com/yahoo/CaffeOnSpark.git -recursive
+
+export CAFFE_ON_SPARK=$(pwd)/CaffeOnSpark
+
+pushd ${CAFFE_ON_SPARK}/caffe-public
+cp Makefile.config.example Makefile.config
+echo "INCLUDE_DIRS += ${JAVA_HOME}/include"
+>> Makefile.config
+pushd ${CAFFE_ON_SPARK}
+make build
+
+sudo apt-get install python-numpy
+export M2_HOME=$(pwd)/apache-maven-3.2.1
+export PATH = $PATH:$M2_HOME/bin
+
+hadoop fs -mkdir -p /projects/machine_learning/image_dataset${CAFFE_ON_SPARK}>./scripts/setup-mnist.sh
+
+${CAFFE_ON_SPARK}>./scripts/setup-cifar10.sh
+
+hadoop fs -put -f ${CAFFE_ON_SPARK}/data/mnist_*_lmdb
+hdfs:/projects/machine_learning/image_dataset/
+hadoop fs -put -f ${CAFFE_ON_SPARK}/data/cifar10_*_lmdb
+hdfs:/projects/machine_learning/image_dataset/
+
+Change the solver mode in the data/lenet_memory_solver.prototxt and data/cifar10_quick_solver.prototxt files as follows:
+solver_mode: CPU
