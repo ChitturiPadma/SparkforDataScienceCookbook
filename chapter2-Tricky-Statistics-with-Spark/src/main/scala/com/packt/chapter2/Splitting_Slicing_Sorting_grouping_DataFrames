@@ -1,0 +1,92 @@
+ipython console -profile=pyspark
+In [4]: from pyspark import SparkConf, SparkContext, SQLContext
+In [5]: import pandas as pd
+In [6]: pdf = pd.DataFrame({'Name':['Padma','Major','Priya'],
+'Age': [23,45,30]})
+In [7]: sqlc=SQLContext(sc)
+In [8]: spark_df = sqlc.createDataFrame(pdf)
+In [9]: pdf1 = pdf[pdf['Age'] >=30]
+In [10]: pdf1
+Out[10]:
+  Age Name  C
+1 45 Major 90
+2 30 Priya 60
+In [11]: pdf2 = pdf[pdf['Age'] <30]
+In [12]: pdf2
+Out[12]:
+  Age Name  C
+0 23 Padma 46
+In [13]: spark_df2 = spark_df[spark_df['Age'] >=30]
+In [14]: spark_df2.show()
++---+-----+
+|Age| Name|
++---+-----+
+| 45|Major|
+| 30|Priya|
++---+-----+
+In [15]: pdf[0:1]
+Out[15]:
+  Age Name  C
+0 23 Padma 46
+In [16]: pdf[1:2]
+Out[16]:
+  Age Name  C
+1 45 Major 90
+In [17]: spark_df['Age','Name'].show()
++---+-----+
+|Age| Name|
++---+-----+
+| 23|Padma|
+| 45|Major|
+| 30|Priya|
++---+-----+
+In [18]: pdf.sort('Name')
+Out[18]:
+  Age Name  C
+1 45 Major 90
+0 23 Padma 46
+2 30 Priya 60
+
+In [19]: pdf.sort(['Name','Age'], ascending=False)
+Out[19]:
+  Age Name C
+2 30 Priya 60
+0 23 Padma 46
+1 45 Major 90
+In [20]: spark_df.sort(spark_df['Name']).show()
++---+-----+
+|Age| Name|
++---+-----+
+| 45|Major|
+| 23|Padma|
+| 30|Priya|
++---+-----+
+pdf = pd.DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5,
+6])])
+df = sqlcontext.createDataFrame([(1, 4), (2, 5), (3, 6)], ["A",
+"B"])
+In [21]: pdf[(pdf.B > 0) & (pdf.A < 2)]
+Out[21]:
+  A B
+0 1 4
+In [22]: df.filter((df.B > 0) & (df.A < 2)).show()
++---+---+
+| A| B  |
++---+---+
+| 1| 4  |
++---+---+
+In [23]: pdf.groupby(['A']).mean()
+Out[23]:
+
+A B
+1 4
+2 5
+3 6
+In [117]: df.groupBy("A").avg("B").show()
++---+------+
+| A|avg(B) |
++---+------+
+| 1|4.0    |
+| 2|5.0    |
+| 3|6.0    |
++---+------+
