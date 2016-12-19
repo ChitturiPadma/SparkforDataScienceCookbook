@@ -1,0 +1,25 @@
+import org.apache.spark._
+import org.apache.spark.sql._
+import org.apache.spark.ml.regression.LinearRegression
+import org.apache.spark.mllib.util.MLUtils
+import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.regression.LabeledPoint
+
+import org.apache.spark.mllib.linalg.{Vector, Vectors}
+import org.apache.spark.mllib.clustering.{KMeans, KMeansModel}
+val data = sqlContext.sql("select * from diabetes")")
+val lr = new LinearRegression()
+.setMaxIter(20)
+.setRegParam(0.3)
+.setElasticNetParam(1.0)
+val lrModel = lr.fit(data)
+> display(lrModel, data, "fittedVsResiduals")
+
+val data = sqlContext.sql("select * from iris")")
+// The MLLib package requires an RDD[Vector] instead of a dataframe.
+We need to
+manually extract the vector.
+// This is not necessary when using the ml package instead.
+val features = data.map(_.getAs[Vector]("features"))
+val clusters = KMeans.train(features, 3, 10)
+> display(clusters, data)
