@@ -26,16 +26,14 @@ object Bivaritate_Analysis {
     val correlated_value_AgeFare = titanic_data.stat.corr("Age",
       "Fare")
     val covariance_AgeFare = titanic_data.stat.cov("Age","Fare")
-    println("Correlation Value For Age and Fare:
-    "+correlated_value_AgeFare)
+    println("Correlation Value For Age and Fare: "+correlated_value_AgeFare)
     println("Covariance For Age and Fare: "+ covariance_AgeFare)
     //Correlation and Covariance between Pclass and Fare
     val correlated_value_PclassFare =
       titanic_data.stat.corr("Pclass", "Fare")
     val covariance_PclassFare =
       titanic_data.stat.cov("Pclass","Fare")
-    println("Correlation Value For Pclass and Fare:
-    "+correlated_value_PclassFare)
+    println("Correlation Value For Pclass and Fare: "+correlated_value_PclassFare)
     println("Covariance For Pclass and Fare: "+
       covariance_PclassFare)
 
