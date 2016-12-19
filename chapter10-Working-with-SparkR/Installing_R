@@ -1,0 +1,8 @@
+sudo apt-key adv --keyserver
+keyserver.ubuntu.com --recv-keys
+E084DAB9
+
+deb https://cran.cnr.berkeley.edu/bin/linux/ubuntu trusty/
+
+sudo apt-get update
+sudo apt-get install r-base r-base-dev
