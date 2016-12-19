@@ -1,0 +1,35 @@
+import java.io.File
+import opennlp.tools.sentdetect.{SentenceDetectorME,
+SentenceModel}
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
+
+object SentenceDetector_Demo {
+  def main(args:Array[String]): Unit ={
+    val conf = new SparkConf()
+      .setAppName("SentenceDetector_Application")
+      .setMaster("spark:master:7077")
+      .set("spark.serializer",
+        "org.apache.spark.serializer.KryoSerializer")
+    val sc = new SparkContext(conf)
+    val textInput = sc.makeRDD(Array("Hi Padma ! How are you ?",
+      "He saw him in Boston at McKenzie's pub. At 3:00 where he",
+      "He was the last person. To see Fred."),1)
+    val sentenceDetectorModelFile = new
+        File("/home/padmac/opennlp_models/en-sent.bin")
+    val model = new SentenceModel(sentenceDetectorModelFile)
+    val sdetector = new SentenceDetectorME(model)
+    val broadCastedsdector = sc.broadcast(sdetector)
+    
+    val results = textInput.map{record =>  (broadCastedsdector.value.sentDetect(record), broadCastedsdector.value.getSentenceProbabilities)
+    }
+    val detectedSentences = results.keys.flatMap(x => x)
+    val probabilities = results.values.flatMap(x => x)
+    println("Detected Sentences: ")
+    detectedSentences.collect().foreach(println)
+    println("Probabilities : ")
+    probabilities.collect().foreach(println)
+  }
+  
+
+}
