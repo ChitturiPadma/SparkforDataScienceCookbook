@@ -1,0 +1,81 @@
+import org.apache.spark._
+import org.apache.spark.rdd._
+import org.apache.spark.sql._
+import org.apache.spark.sql.functions._
+import org.apache.spark.mllib.linalg._
+import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.sql.Row
+
+object LogisticRegression_MLPipeline {
+  def main(args:Array[String]): Unit = {
+    val conf = new SparkConf()
+      .setMaster("spark://master:7077")
+      .setAppName("Logistic_MLPipeline")
+    val sc = new SparkContext(conf)
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+    //Loading data
+    val community_data =
+      sqlContext.read.format("com.databricks.spark.csv")
+        .option("inferSchema", "true")
+        .load("hdfs://namenode:9000/Community_Dataset.csv")
+    /* function that returns 0.0 is string is "PA" and 1.0 if string
+    is "MP" */
+    val func = udf((s:String) => if(s== "PA") 0.0 else 1.0)
+    val final_data = community_data.withColumn("label",func($"C0")
+      .as("label")).drop("C0")
+    final_data.show(5)
+
+    val training = final_data.rdd.map{
+    row => val feature1 = row.getInt(0).toDouble
+    val feature2 = row.getInt(1).toDouble
+    val feature3 = row.getDouble(2)
+      val label = row.getAs[Double]("label")
+      (label,Vectors.dense(feature1,feature2,feature3))
+    }.toDF("label","features")
+    //Create instance for the LogisticRegression
+    val lr = new LogisticRegression()
+    //Display the parameters and any any default values
+    println("LogisticRegression parameters:\n" + lr.explainParams()
+      + "\n")
+
+    //Set the parameters
+    lr.setMaxIter(10)
+      .setRegParam(0.01)
+    //Fit the model
+    val model1 = lr.fit(training)
+    println("Model 1 was fit using parameters: " +
+      model1.parent.extractParamMap)
+
+    //Alternative way of specifying the parameters using a ParamMap
+    val paramMap = ParamMap(lr.maxIter -> 20)
+      .put(lr.maxIter, 30)
+      // Specify 1 Param. This overwrites the original maxIter.
+      .put(lr.regParam -> 0.1, lr.threshold -> 0.55)
+    // Specify multiple Params.
+    // Also can combine ParamMaps.
+    val paramMap2 = ParamMap(lr.probabilityCol -> "myProbability")
+    // Change output column name.
+    val paramMapCombined = paramMap ++ paramMap2
+    //Learn a new model using the paramMapCombined parameters.
+    /* paramMapCombined overrides all parameters set earlier via
+    lr.set* methods */
+    val model2 = lr.fit(training, paramMapCombined)
+    println("Model 2 was fit using parameters: " +
+      model2.parent.extractParamMap)
+
+    // Prepare test data.
+    val test = sqlContext.createDataFrame(Seq(
+      (1.0, Vectors.dense(400, 5, 8.7)),
+      (0.0, Vectors.dense(500, 5, 11.9)),
+      (1.0, Vectors.dense(650, 6, 7.8))
+    )).toDF("label", "features")
+    model2.transform(test).select("features", "label", "myProbability", "prediction")
+      .collect()
+      .foreach { case Row(features: Vector, label: Double, prob:
+        Vector, prediction:Double) =>
+        println(s"($features, $label) -> prob=$prob, prediction=$prediction")
+          }
+  }
+}
