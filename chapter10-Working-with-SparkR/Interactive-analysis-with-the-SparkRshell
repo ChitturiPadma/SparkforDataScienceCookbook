@@ -1,0 +1,51 @@
+/bigdata/spark-1.6.0-bin-hadoop2.6$ ./bin/sparkR --master spark://192.168.0.118:7077
+> textfile = SparkR:::textFile(sc, "~/<path to spark>/spark-
+1.6.0-bin- hadoop2.6/README.md")
+> count(textfile)
+[1] 95
+> take(textfile,1)
+[[1]]
+[1] "# Apache Spark"
+
+> linesWithSpark <- filterRDD(textFile, function(line){
+grepl("Spark",
+line)})
+> count(linesWithSpark)
+[1] 17
+
+>count(SparkR:::filterRDD(textfile, function(line){
+grepl("Spark", line)}))
+
+> SparkR:::reduce( SparkR:::lapply( textfile, function(line) {
+length(strsplit(unlist(line), " ")[[1]])}), function(a, b) { if
+(a > b) { a } else { b }})
+[1] 14
+
+> max <- function(a, b) {if (a > b) { a } else { b }}
+> SparkR:::reduce(SparkR:::map(textfile, function(line) {
+length(strsplit(unlist(line), " ")[[1]])}), max)
+[1] 14
+
+> words <- SparkR:::flatMap(textfile,
+function(line){
+strsplit(line," ")[[1]] })
+wordCount <- SparkR:::lapply(words, function(word){
+list(word,1L)
+})
+counts <- SparkR:::reduceByKey(wordCount, "+", 2L)
+
+output <- collect(counts)
+> for (wordcount in output) {
+cat(wordcount[[1]], ": ", wordcount[[2]], "\n")
+}
+how : 2
+Thriftserver : 1
+detailed : 2
+its : 1
+other : 1
+Alternatively, : 1
+refer : 2
+"yarn" : 1
+runs. : 1
+start : 1
+[...]
