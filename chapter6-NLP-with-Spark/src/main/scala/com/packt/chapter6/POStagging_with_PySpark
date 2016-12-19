@@ -1,0 +1,22 @@
+source activate acluster
+acluster install spark-yarn
+acluster open yarn
+acluster conda install nltk
+
+acluster cmd 'sudo /opt/anaconda/bin/python -m nltk.downloader -d /usr/share/nltk_data all'
+
+spark-nltk.py
+from pyspark import SparkConf
+from pyspark import SparkContext
+conf = SparkConf()
+conf.setMaster('yarn-client')
+conf.setAppName('spark-nltk')
+sc = SparkContext(conf=conf)
+data = sc.textFile('file:///usr/share/nltk_data/corpora/state_union/
+1972-Nixon.txt')
+import nltk
+words = data.flatMap(lambda x: nltk.word_tokenize(x))
+print words.take(10)
+pos_word = words.map(lambda x: nltk.pos_tag([x]))
+print pos_word.take(5)
+
