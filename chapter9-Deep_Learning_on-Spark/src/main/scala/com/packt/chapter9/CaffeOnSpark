@@ -35,3 +35,22 @@ object CaffeOnSpark {
     lr_model.write.overwrite().save(conf.outputPath)
   }
 }
+
+
+Deploy the application to cluster:
+spark-submit \
+-files
+caffenet_train_solver.prototxt,caffenet_train_net.prototxt \
+num-executors 2 \
+-class
+com.yahoo.ml.caffe.examples.MyMLPipeline \
+caffe-grid-0.1-SNAPSHOT-jar-with-dependencies.jar \
+-features fc8 \
+-label label \
+-conf
+caffenet_train_solver.prototxt \
+-model
+hdfs:///sample_images.model \
+-output
+hdfs:///image_classifier_model \
+-devices 2
