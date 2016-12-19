@@ -1,0 +1,12 @@
+val profilesJsonRdd = sqlc.jsonFile("hdfs://namenode:9000/profiles.json")
+val profileDF=profilesJsonRdd.toDF()
+profileDF.printSchema()
+profileDF.show(5)
+profileDF.registerTempTable("profiles")
+
+%sql select eyeColor, count(eyeColor) as count from profiles where
+gender='male' group by eyeColor
+
+Parameterizing the input:
+%sql select eyeColor, count(eyeColor) as count from profiles where
+gender="${gender}" group by eyeColor
