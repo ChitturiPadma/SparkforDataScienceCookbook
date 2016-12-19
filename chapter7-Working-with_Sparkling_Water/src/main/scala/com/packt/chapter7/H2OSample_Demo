@@ -9,7 +9,7 @@ object H2OSample_Demo {
 
   def main(args:Array[String]): Unit = {
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      .setMaster("spark://master:7077")
       .setAppName("H2O_SampleDemo")
 
     val sc = new SparkContext(conf)
@@ -22,7 +22,7 @@ object H2OSample_Demo {
 
     val chicagoCrimesData = sqlContext.read.format("com.databricks.spark.csv")
       .option("header", "true")
-      .option("inferSchema", "true").load("/home/padmac/data/chicagoCrimes.csv")
+      .option("inferSchema", "true").load("hdfs://namenode:9000/chicagoCrimes.csv")
 
     val h2oFrame = h2oContext.asH2OFrame(chicagoCrimesData)
     val means_H2OFrame = h2oFrame.means()
