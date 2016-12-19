@@ -1,0 +1,32 @@
+ipython console -profile=pyspark
+In [1]:
+In [1]: from pyspark import SparkConf, SparkContext
+In [2]: import nltk
+In [3]: nltk.download('averaged_perceptron_tagger')
+Out[3]: True
+In [4]: nltk.download('maxent_ne_chunker')
+Out[4]: True
+In [5]: nltk.download('words')
+Out[5]: True
+In [6]: from pyspark import SparkConf, SparkContext
+In [7]: import nltk
+In [8]: from nltk import word_tokenize, ne_chunk
+In [9]: data = sc.parallelize("Mark is studying at Stanford
+University in California")
+In [10]: words = data.flatMap(lambda x: word_tokenize(x))
+In [11]: pos_tags = words.map(lambda x: nltk.pos)
+In [12]: ne_chunks = pos_tags.map(lambda x: ne_chunk(x,
+binary=False))
+In [13]: ne_chunks.take(2)
+In [14]: from nltk.tag.stanford import NERTagger
+In [15]: st = NERTagger('<PATH>/stanford-
+ner/classifiers/all.3class.distsim.crf.ser.gz',...'<PATH>
+/stanford-ner/stanford-ner.jar')
+dataForStanford = sc.parallelize('Rami Eid is studying at Stony
+Brook University in NY')
+wordsSt = dataForStanford.flatMap(lambda x: x.split())
+wordsTagged = wordsSt.map(lambda x: st.tag(x))
+Out [15]: [('Rami', 'PERSON'), ('Eid', 'PERSON'), ('is', 'O'),
+('studying', 'O'), ('at', 'O'), ('Stony', 'ORGANIZATION'),
+('Brook', 'ORGANIZATION'), ('University', 'ORGANIZATION'), ('in',
+'O'), ('NY', 'LOCATION')]
