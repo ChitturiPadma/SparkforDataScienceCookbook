@@ -1,0 +1,6 @@
+git clone https://github.com/apache/zeppelin.git
+cd zeppelin/
+mvn clean package -Pspark-1.6 -Phadoop-2.6 -Pyarn -Ppyspark -Psparkr -Pscala-2.10 -DskipTests
+
+./bin/zeppelin-daemon.sh start &
+./bin/zeppelin-daemon.sh stop
