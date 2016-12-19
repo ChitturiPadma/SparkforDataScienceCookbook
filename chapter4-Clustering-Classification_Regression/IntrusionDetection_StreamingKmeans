@@ -1,0 +1,146 @@
+import java.net.InetAddress
+import _root_.kafka.serializer.StringDecoder
+import kafka.server.KafkaApis
+import org.apache.spark._
+import org.apache.spark.streaming._
+import org.apache.spark.streaming.StreamingContext._
+import org.apache.spark.streaming.kafka._
+import org.apache.spark.broadcast._
+import org.apache.spark.mllib.linalg._
+import org.apache.spark.mllib.clustering._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.joda.time.DateTime
+
+object IntrusionDetection_StreamingKmeans {
+
+  def distance(featureVector:Vector, centroid:Vector)=
+    math.sqrt(featureVector.toArray.zip(centroid.toArray).map{case
+      (vec1,vec2) => vec1-vec2}.map(diff => diff*diff).sum)
+  def distToCentroid(featureVector:Vector,
+                     broadCastModel:Broadcast[StreamingKMeansModel]):Double={
+    val model = broadCastModel.value
+    val cluster = model.predict(featureVector)
+    val centroid = model.clusterCenters(cluster)
+    distance(featureVector, centroid)
+  }
+  def getCurrentDateTime:Long = DateTime.now.getMillis
+  def getIpAddress = InetAddress.getLocalHost.getHostAddress
+  def normalize(dataum:Vector, means:Array[Double],
+                stdevs:Array[Double]):Vector = {
+    val normalizedArray = (dataum.toArray, means, stdevs).zipped.map{
+      (value, mean, stdev ) => if(stdev <=0) (value-mean) else (value-
+        mean)/stdev
+    }
+    Vectors.dense(normalizedArray)
+  }
+
+
+  def main(args:Array[String]): Unit ={
+    println("Entering Streaming K-Means Application")
+    val conf = new SparkConf().setMaster("spark://master:7077")
+      .setAppName("Anomaly-Detection_System")
+    val sc = new SparkContext(conf)
+    val ssc = new StreamingContext(sc, Seconds(6))
+    val topicName = "test"
+    val topicSet = topicName.split(",").toSet
+    val brokerName = getIpAddress+":"+"9092"
+    val kafkaParams = Map[String,String]("metadata.broker.list" ->
+      brokerName)
+    val inputDstream = KafkaUtils.createDirectStream[String, String,
+      StringDecoder, StringDecoder](ssc, kafkaParams,
+      topicSet).map(_._2)
+    val labelsAndData = inputDstream.map{dataPoint => val parts =
+      dataPoint.split(",").toBuffer
+      val label = parts.remove(parts.length-1)
+      val labelModified = label match {
+        case str:String=> if(str == "back" || str == "neptune" ||
+          str == "land" || str == "smurf" || str == "pod" || str ==
+          "teardrop" || str == "apache2" || str == "udpstorm" || str ==
+          "processtable" || str == "mailbomb" || str == "worm")
+          "DoS"
+        else if(str == "nmap" || str == "ipsweep" || str == "satan" ||
+          str == "portsweep" || str == "mscan" || str == "saint")
+          "Probe"
+        else if(str == "multihop" || str == "ftp_write" || str ==
+          "guess_passwd" || str == "phf" || str == "spy" || str ==
+          "warezclient" || str == "imap" || str == "warezmaster" || str
+          == "snmpgetattack" || str == "snmpguess" || str ==
+          "httptunnel" || str == "sendmail" || str == "xlock" || str ==
+          "named" || str == "xsnoop")
+          "R2L"
+        else if (str == "loadmodule" || str == "rootkit" || str ==
+          "buffer_overflow" || str == "perl" || str == "xterm" || str ==
+          "sqlattack" || str == "ps" )
+          "U2R"
+        else if(str=="normal") "normal"
+        else "unknown"
+      }
+
+      val vector = Vectors.dense(parts.map(_.toDouble).toArray)
+      (labelModified, (dataPoint,vector))
+    }
+
+    val normalizedDStream = labelsAndData.transform{labelsAndVectorsRdd
+      =>
+        val rddVector = labelsAndVectorsRdd.values.values
+        val dataAsArray = rddVector.map(_.toArray)
+        val n = dataAsArray.count
+        val sums = dataAsArray.reduce((a,b) => a.zip(b).map
+        (t => t._1 +t._2))
+        val means = sums.map(_/n)
+        val meanBroadcasted = sc.broadcast(means)
+        val dataWithMeanDiffSquared = dataAsArray.map{features => val
+        meanValue = meanBroadcasted.value
+          val length = features.length
+          val featuresMapped = (0 to length-1).map{i => val diff =
+            features(i)-meanValue(i)
+            diff*diff}
+          featuresMapped.toArray}
+        val squaredSumReduced = dataWithMeanDiffSquared.reduce((a,b) =>
+          a.zip(b).map(t =>
+            t._1+t._2) )
+        val variance = squaredSumReduced.map(_/n)
+        val stdevs = variance.map(ele => math.sqrt(ele))
+        val stdevBroadcasted = sc.broadcast(stdevs)
+        val normalizedData = labelsAndVectorsRdd.map{case(label,
+        (original,vector)) =>
+          val meanValue = meanBroadcasted.value
+          val stdevValue = stdevBroadcasted.value
+          (label,(original,normalize(vector, meanValue, stdevValue)))
+        }
+      normalizedData
+    }.cache()
+    val streaming_k_means = new StreamingKMeans()
+      .setK(5)
+      .setDecayFactor(1.0)
+      .setRandomCenters(38,0.0)
+    streaming_k_means.trainOn(normalizedDStream.map(_._2).map(_._2))
+    val model = streaming_k_means.latestModel()
+    val broadCastedKMeans = sc.broadcast(model)
+    normalizedDStream.foreachRDD{
+      labelsAndVectorsRdd =>
+        val distances = labelsAndVectorsRdd.map{
+          case(label, (original, dataVector)) =>
+            distToCentroid(dataVector,broadCastedKMeans)}
+        val threshold = distances.top(100).last
+        val detectedAnomalies = labelsAndVectorsRdd.filter{
+          case(label, (original, dataVector)) =>
+            distToCentroid(dataVector,broadCastedKMeans) > threshold
+        }
+        val mappedDetectedAnomalies = detectedAnomalies.map{case(label,
+        (original, dataVector)) => (label, "anomaly")}
+        val detectedAnomalyCount =
+          mappedDetectedAnomalies.count.toDouble
+        val realAnomalies =
+          mappedDetectedAnomalies.filter{case(originalLabel,
+          predictedLabel) => originalLabel!="normal"}
+        val correctAnomalyCount = realAnomalies.count.toDouble
+        println("Accuracy is:"+correctAnomalyCount/detectedAnomalyCount)
+    }
+    ssc.start()
+    ssc.awaitTermination()
+    ssc.stop()
+  }
+}
+      
