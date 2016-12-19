@@ -1,0 +1,29 @@
+sbin/start-all.sh
+
+conf/interpreter.json:
+
+"2BXPPAVX1": {
+"id": "2BXPPAVX1",
+"name": "spark",
+"group": "spark",
+"properties": {
+"spark.executor.memory": "",
+"args": "",
+"zeppelin.spark.printREPLOutput": "true",
+"spark.cores.max": "",
+"zeppelin.dep.additionalRemoteRepository": "spark-
+packages,http://dl.bintray.com/spark-packages/maven,false;",
+"zeppelin.spark.importImplicit": "true",
+"zeppelin.spark.sql.stacktrace": "false",
+"zeppelin.spark.concurrentSQL": "false",
+"zeppelin.spark.useHiveContext": "true",
+"zeppelin.pyspark.python": "python",
+"zeppelin.dep.localrepo": "local-repo",
+"zeppelin.interpreter.localRepo": "local-rep",
+"zeppelin.R.knitr": "true",
+"zeppelin.spark.maxResult": "1000",
+"master": "spark://master:7077",
+"spark.app.name": "Zeppelin",
+
+conf/zeppelin-env.sh:
+export MASTER= spark://master:7077
