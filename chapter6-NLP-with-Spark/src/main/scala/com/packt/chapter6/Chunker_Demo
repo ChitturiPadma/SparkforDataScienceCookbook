@@ -1,0 +1,45 @@
+import java.io.File
+import opennlp.tools.chunker.{ChunkerME, ChunkerModel}
+import opennlp.tools.postag.POSTaggerME
+import opennlp.tools.tokenize.WhitespaceTokenizer
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
+import opennlp.tools.cmdline.postag.POSModelLoader
+
+object Chunker_Demo {
+  def main(args:Array[String]): Unit ={
+    val conf = new SparkConf()
+      .setAppName("Chunker_Application")
+      .setMaster("spark://master:7077")
+      .set("spark.serializer",
+        "org.apache.spark.serializer.KryoSerializer")
+    val sc = new SparkContext(conf)
+    val textInput = sc.makeRDD(Array("I am Padma working in Fractal Analytics Company","I am a big data enthusiast",
+      "I love cooking"),1)
+      val modelFile = new File("/home/padmac/opennlp_models/en-pos- maxent.bin")
+      val chunkerModelFile = new File("/home/padmac/opennlp_models/enchunker.bin")
+      val model = new POSModelLoader().load(modelFile)
+      val tagger = new POSTaggerME(model)
+      val chunkerModel = new ChunkerModel(chunkerModelFile)
+      val chunkerME= new ChunkerME(chunkerModel)
+      val broadCastedChunkerME = sc.broadcast(chunkerME)
+      val broadCastedTagger = sc.broadcast(tagger)
+      val resultsAndSpan = textInput.map{sentence =>
+      val tokenizedLines =
+      WhitespaceTokenizer.INSTANCE.tokenize(sentence)
+      val tags = broadCastedTagger.value.tag(tokenizedLines)
+      val result = broadCastedChunkerME.value.
+      chunk(tokenizedLines,tags)
+      val span = broadCastedChunkerME.value
+      .chunkAsSpans(tokenizedLines,tags)
+      (result,span)}
+      val results = resultsAndSpan.flatMap{case(results,spans) =>results}
+      val spans = resultsAndSpan.flatMap{case(results,spans) =>spans}
+      println("Resultant Strings: ")
+      results.foreach(println)
+      println("Spans: ")
+      spans.foreach(println)
+      }
+  
+
+}
