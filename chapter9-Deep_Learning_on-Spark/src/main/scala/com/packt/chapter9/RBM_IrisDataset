@@ -1,0 +1,74 @@
+
+import org.deeplearning4j.datasets.iterator.impl.
+IrisDataSetIterator
+import org.deeplearning4j.eval.Evaluation
+import org.deeplearning4j.nn.api.{Layer, OptimizationAlgorithm}
+import org.deeplearning4j.nn.conf.{Updater,
+NeuralNetConfiguration}
+import org.deeplearning4j.nn.conf.layers.{OutputLayer, RBM}
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
+import org.deeplearning4j.nn.weights.WeightInit
+import org.nd4j.linalg.factory.Nd4j
+import org.nd4j.linalg.lossfunctions.LossFunctions
+
+object RBM_IrisDataset {
+
+  def main(args: Array[String]) {
+    Nd4j.MAX_SLICES_TO_PRINT = -1
+    Nd4j.MAX_ELEMENTS_PER_SLICE = -1
+    Nd4j.ENFORCE_NUMERICAL_STABILITY = true
+    val inputNum = 4
+    var outputNum = 3
+    var numSamples = 150
+    var batchSize = 150
+    var iterations = 1000
+    var seed = 321
+    var listenerFreq = iterations / 5
+    val learningRate = 1e-6
+    println("Loading data....")
+    val iter = new IrisDataSetIterator(batchSize, numSamples)
+    val iris = iter.next()
+    iris.shuffle()
+    iris.normalizeZeroMeanZeroUnitVariance()
+    val testAndTrain = iris.splitTestAndTrain(0.80)
+    val train = testAndTrain.getTrain
+    val test = testAndTrain.getTest
+    println("Building model....")
+    val RMSE_XENT = LossFunctions.LossFunction.RMSE_XENT
+    val conf = new NeuralNetConfiguration.Builder()
+      .seed(seed)
+      .iterations(iterations)
+      .learningRate(learningRate)
+      .l1(1e-1).regularization(true).l2(2e-4)
+      .optimizationAlgo(OptimizationAlgorithm
+        .CONJUGATE_GRADIENT)
+      .useDropConnect(true)
+      .list(2)
+      .layer(0, new RBM.Builder(RBM.HiddenUnit.RECTIFIED,
+        RBM.VisibleUnit.GAUSSIAN)
+        .nIn(inputNum).nOut(3).k(1).activation("relu")
+        .weightInit(WeightInit.XAVIER).lossFunction(RMSE_XENT)
+        .updater(Updater.ADAGRAD).dropOut(0.5)
+        .build())
+      .layer(1, new OutputLayer.Builder(LossFunctions
+        .LossFunction.MCXENT)
+        .nIn(3).nOut(outputNum).activation("softmax").build())
+      .build()
+    val model = new MultiLayerNetwork(conf)
+    model.init()
+    println("Train the model....")
+    model.fit(train.getFeatureMatrix)
+    println("Evaluating the model....")
+    val eval = new Evaluation(outputNum)
+    val output = model.output(test.getFeatureMatrix,
+      Layer.TrainingMode.TEST)
+    (0 until output.rows()).foreach { i =>
+      val actual = train.getLabels.getRow(i).toString.trim()
+      val predicted = output.getRow(i).toString.trim()
+      println("actual " + actual + " vs predicted " + predicted)
+    }
+    eval.eval(test.getLabels, output)
+    println(eval.stats())
+  }
+
+}
