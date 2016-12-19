@@ -1,0 +1,17 @@
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = "/home/padmac/bigdata/spark-1.6.0-bin-hadoop2.6")
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+sc <- sparkR.init(master = "spark://192.168.0.118:7077", sparkEnvir = list(spark.driver.memory="2g"))
+
+sqlContext <- sparkRSQL.init(sc)
+df <- createDataFrame(sqlContext, faithful)
+head(select(df, df$eruptions))
+head(select(df, "eruptions"))
+head(filter(df, df$waiting < 50))
+
+waiting_counts <- summarize(groupBy(df, df$waiting), count = n(df$waiting))
+head(arrange(waiting_counts, desc(waiting_counts$count)))
+head(waiting_counts)
+df$waiting_secs <- df$waiting * 60
+head(df)
