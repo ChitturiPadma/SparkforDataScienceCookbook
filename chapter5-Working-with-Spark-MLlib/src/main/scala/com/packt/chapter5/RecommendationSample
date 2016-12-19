@@ -1,0 +1,47 @@
+import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.mllib.recommendation.ALS
+import org.apache.spark.mllib.recommendation.Rating
+
+object RecommendationSample {
+  def main(args:Array[String]): Unit =
+  {
+    //Initalize SparkConf and SparkContext
+    val conf = new SparkConf
+    conf.setMaster("spark://master:7077")
+      .setAppName("Alternating_Least_Squares")
+    val sc = new SparkContext(conf)
+    //Load and parse the data
+    val rawData = sc.textFile("hdfs://namenode:9000/datsets/u.data")
+    val ratings = rawData.map(line => line.split("\t").take(3) match
+    {
+      case Array(userid, movieid, rating) => Rating(userid.toInt,
+        movieid.toInt, rating.toDouble)
+    })
+    val rank = 10
+    val numIterations = 10
+    val model = ALS.train(ratings, rank, numIterations, 0.01)
+    val userId = 789
+    val movieId = 123
+    val predictedRating = model.predict(userId, movieId)
+    val K=10
+    val topKRecs = model.recommendProducts(userId, K)
+    println("Predicted Rating: " +predictedRating+" for User:
+    "+userId)
+    println("top-K recommended Items:")
+    println(topKRecs.mkString("\n"))
+    //Evaluate the model on training data
+    val userProducts = ratings.map{case Rating(user, product, rate) =>
+      (user,product)}
+    val predictions = model.predict(userProducts).map{case
+      Rating(user,product,rate) =>
+      ((user,product), rate)}
+    val ratesAndPreds = ratings.map{case Rating(user,product,rate) =>
+      ((user,product),
+        rate)}.join(predictions)
+    val meanSquaredError = ratesAndPreds.map{case ((user,product),
+    (r1,r2)) =>
+      val err = r1 -r2
+      err*err}.mean
+    println("Mean Squared Error: "+meanSquaredError)
+  }
+}
