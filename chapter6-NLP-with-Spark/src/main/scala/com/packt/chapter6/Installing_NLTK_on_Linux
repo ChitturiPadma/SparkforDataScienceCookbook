@@ -1,0 +1,12 @@
+sudo apt-get install python2.7
+
+sudo pip install -U nltk
+sudo pip install nltk
+sudo pip install -U numpy
+python
+Python 2.7.6 (default, Mar 22 2014, 22:59:56)
+[GCC 4.8.2] on linux2
+Type "help", "copyright", "credits" or "license" for more
+information.
+>>> import nltk
+>>>
