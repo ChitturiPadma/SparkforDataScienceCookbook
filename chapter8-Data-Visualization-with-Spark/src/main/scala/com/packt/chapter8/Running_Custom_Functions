@@ -1,0 +1,11 @@
+def fnGroupAge(age: Int, bucket:Int=10) = {
+val buckets = Array("0-10", "11-20", "20-30", "31-40", "41-50", "51-60",
+"61-70", "71-80", "81-90", "91-100", ">100")
+val bucket = buckets((age-1)/10)
+bucket
+}
+
+sqlc.udf.register("fnGroupAge", (age:Long)=>ageGroup(age.toInt))
+%sql select fnGroupAge(age) as ageGroup, count(gender) as genderTotal from
+profiles where gender='${gender=male,male|female}' group by
+fnGroupAge(age), gender
