@@ -1,0 +1,31 @@
+import org.apache.spark._
+import org.apache.spark.sql._
+import org.apache.spark.h2o._
+import org.apache.spark.h2o.H2OContext
+
+
+
+object H2OSample_Demo {
+
+  def main(args:Array[String]): Unit = {
+    val conf = new SparkConf()
+      .setMaster("local[2]")
+      .setAppName("H2O_SampleDemo")
+
+    val sc = new SparkContext(conf)
+    val sqlContext = new SQLContext(sc)
+    val h2oContext = H2OContext.getOrCreate(sc)
+
+     import h2oContext._
+     import h2oContext.implicits._
+     import sqlContext.implicits._
+
+    val chicagoCrimesData = sqlContext.read.format("com.databricks.spark.csv")
+      .option("header", "true")
+      .option("inferSchema", "true").load("/home/padmac/data/chicagoCrimes.csv")
+
+    val h2oFrame = h2oContext.asH2OFrame(chicagoCrimesData)
+    val means_H2OFrame = h2oFrame.means()
+    means_H2OFrame.foreach(println)
+  }
+}
