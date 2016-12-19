@@ -17,7 +17,7 @@ object Streaming_KafkaProducer {
     val config:ProducerConfig = new ProducerConfig(props)
     val producer:Producer[String,String] = new
         Producer[String,String](config)
-    val fileObject1) = getFileObject("hdfs://namenode:9000/KDD_Data.csv")
+    val fileObject1 = getFileObject("hdfs://namenode:9000/KDD_Data.csv")
       val lines = readFile(fileObject1)
       while(true)
       {val record = lines(random.nextInt(148517))
