@@ -88,7 +88,7 @@ object H2O_ChicagoCrimeApp {
     // Loading Weather Data
     val chicagoWeatherData = sqlContext.read.format("com.databricks.spark.csv")
       .option("header", "true")
-      .option("inferSchema", "true").load("/home/padmac/cookbook/Problems/chicagoAllWeather.csv")
+      .option("inferSchema", "true").load("hdfs://namenode:9000/chicagoAllWeather.csv")
 
     //Create temporary table or view
     chicagoWeatherData.registerTempTable("chicagoWeather")
@@ -96,7 +96,7 @@ object H2O_ChicagoCrimeApp {
     // Loading Census Data
     val censusData = sqlContext.read.format("com.databricks.spark.csv")
       .option("header", "true")
-      .option("inferSchema", "true").load("/home/padmac/cookbook/Problems/chicagoCensus.csv")
+      .option("inferSchema", "true").load("hdfs://namenode:9000/chicagoCensus.csv")
 
     //Create temporary table or view
     censusData.registerTempTable("chicagoCensus")
@@ -104,7 +104,7 @@ object H2O_ChicagoCrimeApp {
     // Loading Crime Data
     val crimeData = sqlContext.read.format("com.databricks.spark.csv")
       .option("header", "true")
-      .option("inferSchema", "true").load("/home/padmac/cookbook/Problems/chicagoCrimes10k.csv")
+      .option("inferSchema", "true").load("hdfs://namenode:9000/chicagoCrimes10k.csv")
 
     //Create temporary table or view
     crimeData.registerTempTable("chicagoCrime")
