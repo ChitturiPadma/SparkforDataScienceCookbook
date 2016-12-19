@@ -1,0 +1,43 @@
+import java.io._
+import org.apache.spark.ml.spark.models.svm._
+import org.apache.spark.h2o.H2OContext
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.{SparkConf, SparkContext, SparkFiles}
+import water.fvec.H2OFrame
+import water.support.SparkContextSupport
+
+object H2O_SVM {
+
+  def main(args: Array[String]): Unit = {
+
+    val conf = new SparkConf()
+      .setMaster("spark://master:7077")
+      .setAppName("H2O_SVMDemo")
+    val sc = new SparkContext(conf)
+
+
+    implicit val h2oContext = H2OContext.getOrCreate(sc)
+    implicit val sqlContext = new SQLContext(sc)
+    val breastCancerData = new H2OFrame(new File("hdfs://namenode:9000/Breast_CancerData.csv"))
+
+    // Training data
+    breastCancerData.replace(breastCancerData.numCols()-1, breastCancerData.lastVec().toCategoricalVec)
+    breastCancerData.update()
+
+    // Configure DeepLearning Algorithm
+    val parms = new SVMParameters
+    parms._train = breastCancerData.key
+    parms._response_column = "label"
+
+    val svm = new SVM(parms, h2oContext)
+    val svmModel = svm.trainModel.get
+
+    // Use model for scoring
+    val predictionH2OFrame = svmModel.score(breastCancerData)
+    val predictionsFromModel = h2oContext.asDataFrame(predictionH2OFrame).collect
+    println(predictionsFromModel.mkString("\n===> Model predictions: ", ",\n", ", ...\n"))
+
+    h2oContext.stop(stopSparkContext = true)
+  }
+
+}
