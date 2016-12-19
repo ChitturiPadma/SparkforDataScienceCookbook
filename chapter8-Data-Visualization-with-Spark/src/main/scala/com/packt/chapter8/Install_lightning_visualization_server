@@ -14,3 +14,6 @@ npm start (starts the lightning server)
 
 git clone https://github.com/lightning-viz/lightning-scala.git
 sbt assembly
+
+Create lib folder in SparkDataScience
+Add lightning-scala-assembly-0.1.0-SNAPSHOT.jar to lib folder in SparkDataScience 
