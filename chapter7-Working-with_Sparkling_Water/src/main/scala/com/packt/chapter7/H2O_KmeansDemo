@@ -1,0 +1,56 @@
+  */
+import org.apache.spark._
+import org.apache.spark.sql._
+import org.apache.spark.h2o._
+import hex.kmeans.KMeansModel.KMeansParameters
+import hex.kmeans.{KMeans, KMeansModel}
+import water._
+import water.support.SparkContextSupport
+
+object H2O_KmeansDemo {
+
+  def main(args:Array[String]): Unit = {
+    val conf = new SparkConf()
+      .setMaster("local[2]")
+      .setAppName("H2O_KmeansDemo")
+
+    val sc = new SparkContext(conf)
+    val sqlContext = new SQLContext(sc)
+    val h2oContext = H2OContext.getOrCreate(sc)
+
+    import h2oContext._
+    import h2oContext.implicits._
+    import sqlContext.implicits._
+
+    val prostateDf = sqlContext.read.format("com.databricks.spark.csv")
+      .option("header", "true")
+      .option("inferSchema", "true").load("/home/padmac/cookbook/Problems/prostate.csv")
+    prostateDf.registerTempTable("prostate_table")
+
+    val result = sqlContext.sql("SELECT * FROM prostate_table WHERE CAPSULE=1")
+    val h2oFrame = h2oContext.asH2OFrame(result)
+
+    // Build a KMeans model, setting model parameters via a Properties
+    val model = runKmeans(h2oFrame)
+    println(model)
+
+    // Shutdown Spark cluster and H2O
+    h2oContext.stop(stopSparkContext = true)
+
+  }
+
+  def runKmeans[T](trainDataFrame: H2OFrame): KMeansModel = {
+    val params = new KMeansParameters
+    params._train = trainDataFrame._key
+    params._k = 3
+
+    // Create a builder
+    val job = new KMeans(params)
+    // Launch a job and wait for the end.
+    val kmm = job.trainModel.get
+    // Print the JSON model
+    println(new String(kmm._output.writeJSON(new AutoBuffer()).buf()))
+    // Return a model
+    kmm
+  }
+}
