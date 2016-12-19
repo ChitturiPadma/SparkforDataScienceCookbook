@@ -1,0 +1,36 @@
+sudo apt-get install python2.7
+sudo apt-get install python-pip python-dev
+
+sudo pip install --upgrade
+
+python
+Python 2.7.6 (default, Mar 22 2014, 22:59:56)
+[GCC 4.8.2] on linux2
+Type "help", "copyright", "credits" or "license" for more
+information.
+>>> import tensorflow as tf
+>>> hello = tf.constant('Hello, TensorFlow!')
+>>> sess = tf.Session()
+>>> print(sess.run(hello))
+Hello, TensorFlow!
+>>> a = tf.constant(10)
+>>> b = tf.constant(32)
+>>> print(sess.run(a + b))
+42
+$ cd models/image/mnist
+/<TensorFlow_Package_Path>/models/image/mnist$ python
+convolutional.py
+Extracting data/train-images-idx3-ubyte.gz
+Extracting data/train-labels-idx1-ubyte.gz
+Extracting data/t10k-images-idx3-ubyte.gz
+Extracting data/t10k-labels-idx1-ubyte.gz
+Initialized!
+Step 0 (epoch 0.00), 4.4 ms
+Minibatch loss: 12.054, learning rate: 0.010000
+Minibatch error: 90.6%
+Validation error: 84.6%
+Step 100 (epoch 0.12), 401.4 ms
+Minibatch loss: 3.289, learning rate: 0.010000
+Minibatch error: 6.2%
+Validation error: 7.0%
+Step 200 (epoch 0.23), 404.5 ms
