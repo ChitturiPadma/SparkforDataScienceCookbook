@@ -1,0 +1,18 @@
+ipython console -profile=pyspark
+In [1]: from pyspark import SparkConf, SparkContext, SQLContext
+In [2]: import pandas as pd
+In [3]: seq=pd.Series([1,2,3,4,4,3,2,1],
+['2006','2007','2008','2009','2010','2011','2012','2013'])
+In [4]: seq2 = pd.Series([3,4,3,4,5,4,3,2],
+['2006','2007','2008','2009','2010','2011','2012','2013'])
+In [5]: seq.corr(seq2)
+Out[5]: 0.77459666924148329
+In [6]: seq.cov(seq2)
+Out[6]: 0.8571428571428571
+In [186]: seq=pd.DataFrame.from_items([('A', [1,2,3,4,4,3,2,1]),
+('B',[1,4,2,3,4,2,3,2]) ])
+In [187]: df = sqlc.createDataFrame(seq)
+In [189]: df.stat.cov('A','B')
+Out[189]: 0.6428571428571429
+In [190]: df.stat.corr('A','B')
+Out[190]: 0.50709255283711
