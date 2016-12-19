@@ -1,0 +1,48 @@
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = "/home/padmac/bigdata/spark-2.0.2-bin-hadoop2.6")
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+sparkR.session(master = "spark://192.168.0.118:7077", sparkConfig = list(spark.driver.memory = "2g"))
+
+schema <- structType(structField("eruptions", "double"), structField("waiting", "double"),
+                     structField("waiting_secs", "double"))
+df1 <- dapply(df, function(x) { x <- cbind(x, x$waiting * 60) }, schema)
+head(collect(df1))
+ldf <- dapplyCollect(
+        df,
+        function(x){
+          x <- cbind(x, "waiting_secs" = x$waiting * 60)
+        })
+head(ldf,4)
+#gapply
+schema <- structType(structField("waiting", "double"), structField("max_eruption", "double"))
+result <- gapply(
+  df,
+  "waiting",
+  function(key, x) {
+    y <- data.frame(key, max(x$eruptions))
+  },
+  schema)
+head(collect(arrange(result, "max_eruption", decreasing = TRUE)))
+print("gapply output:")
+result <- gapplyCollect(
+  df,
+  "waiting",
+  function(key, x) {
+    y <- data.frame(key, max(x$eruptions))
+    colnames(y) <- c("waiting", "max_eruption")
+    y
+  })
+head(result[order(result$max_eruption, decreasing = TRUE), ])
+
+print("lapply")
+families <- c("gaussian", "poisson")
+train <- function(family) {
+  model <- glm(Sepal.Length ~ Sepal.Width + Species, iris, family = family)
+  summary(model)
+}
+# Return a list of model's summaries
+model.summaries <- spark.lapply(families, train)
+
+# Print the summary of each model
+print(model.summaries)
