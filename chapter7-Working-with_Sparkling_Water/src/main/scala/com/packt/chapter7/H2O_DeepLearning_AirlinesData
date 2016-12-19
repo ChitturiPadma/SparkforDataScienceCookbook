@@ -1,0 +1,71 @@
+
+import hex.deeplearning.DeepLearning
+import hex.deeplearning.DeepLearningModel.DeepLearningParameters
+import org.apache.spark.{SparkContext, SparkConf, SparkFiles}
+import org.apache.spark.h2o.{DoubleHolder, H2OContext, H2OFrame}
+import org.apache.spark.sql.{SQLContext, Dataset}
+import water.support.{SparkContextSupport}
+import org.apache.spark.util.MutableURLClassLoader
+import java.net._
+
+object H2O_DeepLearning_AirlinesData {
+
+  def main(args:Array[String]): Unit ={
+
+    val conf = new SparkConf()
+      .setMaster("spark://master:7077")
+      .setAppName("H2O_DeepLearning_AirlinesData")
+    val sc = new SparkContext(conf)
+    implicit val h2oContext = H2OContext.getOrCreate(sc)
+    implicit val sqlContext = new SQLContext(sc)
+
+    import h2oContext._
+    import h2oContext.implicits._
+    import sqlContext.implicits._
+
+    //Loading Data
+    val airlinesData = sqlContext.read.format("com.databricks.spark.csv")
+      .option("header", "true")
+      .option("inferSchema", "true").load("hdfs://namenode:9000/allyears2k_headers.csv")
+
+    //Create temporary table or view
+    airlinesData.registerTempTable("airlinesTable")
+
+
+    val result : H2OFrame = sqlContext.sql("SELECT * FROM airlinesTable WHERE Dest LIKE 'SFO'")
+    println(" Number of flights with destination in SFO: "+result.numRows())
+
+    // Run Deep Learning
+
+    // Training data
+    val train = result('Year, 'Month, 'DayofMonth, 'DayOfWeek, 'CRSDepTime, 'CRSArrTime,
+      'UniqueCarrier, 'FlightNum, 'TailNum, 'CRSElapsedTime, 'Origin, 'Dest,
+      'Distance, 'IsDepDelayed )
+
+    train.replace(train.numCols()-1, train.lastVec().toCategoricalVec)
+    train.update()
+
+    // Configure Deep Learning algorithm
+    val dlParams = new DeepLearningParameters()
+    dlParams._train = train
+    dlParams._response_column = 'IsDepDelayed
+
+    val dl = new DeepLearning(dlParams)
+    val dlModel = dl.trainModel.get
+
+
+    // Use model for scoring
+    println("Making prediction with help of DeepLearning model")
+    val predictions= dlModel.score(result)
+
+    predictions.vecs().map(_.at(0)).foreach(println)
+    /*val predictionsFromModel = asRDD[DoubleHolder](predictionH2OFrame).collect.map ( _.result.getOrElse("NaN") )
+    println(predictionsFromModel.mkString("Model predictions: ", ", ", ", ..."))
+*/
+
+    // Shutdown H2O
+    h2oContext.stop(stopSparkContext = true)
+
+  }
+
+}
