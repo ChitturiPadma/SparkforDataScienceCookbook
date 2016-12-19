@@ -11,7 +11,7 @@ object H2O_KmeansDemo {
 
   def main(args:Array[String]): Unit = {
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      .setMaster("spark://master:7077")
       .setAppName("H2O_KmeansDemo")
 
     val sc = new SparkContext(conf)
@@ -24,7 +24,7 @@ object H2O_KmeansDemo {
 
     val prostateDf = sqlContext.read.format("com.databricks.spark.csv")
       .option("header", "true")
-      .option("inferSchema", "true").load("/home/padmac/cookbook/Problems/prostate.csv")
+      .option("inferSchema", "true").load("hdfs://namenode:9000/prostate.csv")
     prostateDf.registerTempTable("prostate_table")
 
     val result = sqlContext.sql("SELECT * FROM prostate_table WHERE CAPSULE=1")
