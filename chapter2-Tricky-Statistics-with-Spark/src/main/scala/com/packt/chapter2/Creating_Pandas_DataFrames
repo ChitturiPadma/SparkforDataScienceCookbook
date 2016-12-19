@@ -1,0 +1,82 @@
+ipython console -profile=pyspark
+In [4]: from pyspark import SparkConf, SparkContext, SQLContext
+In [5]: import pandas as pd
+In [6]: pdf = pd.DataFrame({'Name':['Padma','Major','Priya'],
+'Age': [23,45,30]})
+In [7]: sqlc=SQLContext(sc)
+In [8]: spark_df = sqlc.createDataFrame(pdf)
+In [9]: pdf.Name
+Out[9]:
+0 Padma
+1 Major
+2 Priya
+Name: Name, dtype: object
+In [10]: pdf['Name']
+Out[10]:
+0 Padma
+1 Major
+2 Priya
+Name: Name, dtype: object
+
+In [11]: spark_df.Name
+Out[11]: Column<Name>
+In [12]: spark_df['Name']
+Out[12]: Column<Name>
+In [13]: pdf['C']=0
+In [14]: pdf
+Out[14]:
+  Age Name C
+0 23 Padma 0
+1 45 Major 0
+2 30 Priya 0
+
+In [15]: from pyspark.sql import functions
+In [16]: spark_df.withColumn('C',functions.lit(0))
+Out[16]: DataFrame[Age: bigint, Name: string, C: int]
+In [17]: spark_df.show()
++---+-----+
+|Age| Name|
++---+-----+
+| 23|Padma|
+| 45|Major|
+| 30|Priya|
++---+-----+
+In [18]: spark_df.withColumn('C',functions.lit(0)).show()
++---+-----+---+
+|Age| Name| C|
++---+-----+---+
+| 23|Padma| 0|
+| 45|Major| 0|
+| 30|Priya| 0|
++---+-----+---+
+In [19]:spark_df.withColumn('C',spark_df.Age*2).show()
++---+-----+---+
+|Age| Name| C|
++---+-----+---+
+| 23|Padma| 46|
+| 45|Major| 90|
+| 30|Priya| 60|
++---+-----+---+
+In [20]: pdf['C']=pdf.Age*2
+In [21]: pdf
+  Age Name C
+0 23 Padma 46
+1 45 Major 90
+2 30 Priya 60
+In [22]: spark_df.select(spark_df.Age > 0).show()
++---------+
+|(Age > 0)|
++---------+
+|     true|
+|     true|
+|     true|
++---------+
+In [23]: pdf['Age']>0
+Out[23]:
+0 True
+1 True
+2 True
+Name: Age, dtype: bool
+In [47]: spark_df.toPandas
+
+
