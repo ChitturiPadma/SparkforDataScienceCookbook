@@ -1,0 +1,51 @@
+sudo apt-get install python2.7
+conda create -n acluster python=2.7
+source activate acluster
+conda install anaconda-client
+
+(acluster)padma@padma$ anaconda login
+Using Anaconda Cloud api site https://api.anaconda.org
+Username: padma
+padma's Password:
+login successful
+
+conda install anaconda-cluster -c anaconda-cluster
+
+Edit ~/.acluster/providers.yaml file:
+private_key: ~/.ssh/id_rsa
+
+Edit ~/.acluster/profiles.d/aws_profile_sample file:
+
+name: padma
+provider: aws_east
+num_nodes: 4
+node_id: bare_metal # Ubuntu 14.04, us-east-1 region
+node_type: bare_metal
+user: ubuntu
+anaconda_url: http://localhost/miniconda/Miniconda-latest-
+Linux-x86_64.sh
+machines:
+head:
+- 192.168.1.1
+compute:
+- 192.168.1.2
+- 192.168.1.3
+- 192.168.1.4
+plugins:
+- spark-yarn
+- notebook
+default_channels: http://localhost/conda/anaconda
+conda_channels:
+- defaults
+- anaconda-cluster
+- blaze
+- pypi
+- username
+- https://conda.anaconda.org/username/
+security:
+disable_selinux: false
+flush_iptables: false
+
+acluster create demo_cluster --profile padma
+acluster conda install numpy scipy pandas nltk
+acluster install notebook
