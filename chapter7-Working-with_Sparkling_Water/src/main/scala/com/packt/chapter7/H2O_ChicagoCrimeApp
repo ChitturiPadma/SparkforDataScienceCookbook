@@ -1,0 +1,132 @@
+
+import hex.deeplearning.DeepLearningModel
+import hex.deeplearning.DeepLearningModel.DeepLearningParameters
+import hex.deeplearning.DeepLearningModel.DeepLearningParameters.Activation
+import hex.tree.gbm.GBMModel
+import hex.{Model, ModelMetricsBinomial}
+import org.apache.spark.SparkContext
+import org.apache.spark.h2o.{H2OContext, H2OFrame}
+import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.joda.time.DateTimeConstants._
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.{DateTimeZone, MutableDateTime}
+import water.MRTask
+import water.fvec.{Chunk, NewChunk, Vec}
+import water.parser.{BufferedString, ParseSetup}
+import water.support.{H2OFrameSupport, ModelMetricsSupport, SparkContextSupport, SparklingWaterApp}
+import java.net._
+import org.apache.spark._
+
+object H2O_ChicagoCrimeApp {
+
+  def SEASONS = Array[String]("Spring", "Summer", "Autumn", "Winter")
+
+  def getSeason(month: Int) =
+    if (month >= MARCH && month <= MAY) 0 // Spring
+    else if (month >= JUNE && month <= AUGUST) 1 // Summer
+    else if (month >= SEPTEMBER && month <= OCTOBER) 2 // Autumn
+    else 3 // Winter
+
+  def loadData(datafile: String, modifyParserSetup: ParseSetup => ParseSetup = identity[ParseSetup]): H2OFrame = {
+    val uri = java.net.URI.create(datafile)
+    val parseSetup = modifyParserSetup(water.fvec.H2OFrame.parserSetup(uri))
+    new H2OFrame(parseSetup, new java.net.URI(datafile))
+  }
+
+  def createWeatherTable(datafile: String): H2OFrame = {
+    val table = loadData(datafile)
+    // Remove first column since we do not need it
+    table.remove(0).remove()
+    table.update()
+    table
+  }
+
+  def createCensusTable(datafile: String): H2OFrame = {
+    val table = loadData(datafile)
+    // Rename columns: replace ' ' by '_'
+    val colNames = table.names().map( n => n.trim.replace(' ', '_').replace('+','_'))
+    table._names = colNames
+    table.update()
+    table
+  }
+
+  def createCrimeTable(datafile: String): H2OFrame = {
+    val table = loadData(datafile, (parseSetup: ParseSetup) => {
+      val colNames = parseSetup.getColumnNames
+      val typeNames = parseSetup.getColumnTypes
+      colNames.indices.foreach { idx =>
+        if (colNames(idx) == "Date") typeNames(idx) = Vec.T_STR
+      }
+      parseSetup
+    })
+    // Refine date into multiple columns
+    val dateCol = table.vec(2)
+    table.add(new RefineDateColumn("MM/dd/yyyy hh:mm:ss a", "Etc/UTC").doIt(dateCol))
+    // Update names, replace all ' ' by '_'
+    val colNames = table.names().map( n => n.trim.replace(' ', '_'))
+    table._names = colNames
+    // Remove Date column
+    table.remove(2).remove()
+    // Update in DKV
+    table.update()
+    table
+  }
+
+  def main(args:Array[String]): Unit = {
+
+    val conf = new SparkConf()
+      .setMaster("local[2]")
+      .setAppName("H2O_ChicagoCrimeApp")
+    val sc = new SparkContext(conf)
+    // implicit val h2oContext = H2OContext.getOrCreate(sc)
+    implicit val sqlContext = new SQLContext(sc)
+
+    /*   import h2oContext._
+       import h2oContext.implicits._*/
+    import sqlContext.implicits._
+
+    // Loading Weather Data
+    val chicagoWeatherData = sqlContext.read.format("com.databricks.spark.csv")
+      .option("header", "true")
+      .option("inferSchema", "true").load("/home/padmac/cookbook/Problems/chicagoAllWeather.csv")
+
+    //Create temporary table or view
+    chicagoWeatherData.registerTempTable("chicagoWeather")
+
+    // Loading Census Data
+    val censusData = sqlContext.read.format("com.databricks.spark.csv")
+      .option("header", "true")
+      .option("inferSchema", "true").load("/home/padmac/cookbook/Problems/chicagoCensus.csv")
+
+    //Create temporary table or view
+    censusData.registerTempTable("chicagoCensus")
+
+    // Loading Crime Data
+    val crimeData = sqlContext.read.format("com.databricks.spark.csv")
+      .option("header", "true")
+      .option("inferSchema", "true").load("/home/padmac/cookbook/Problems/chicagoCrimes10k.csv")
+
+    //Create temporary table or view
+    crimeData.registerTempTable("chicagoCrime")
+
+
+    // Join crime data with weather and census tables
+
+    val crimeWeather = sqlContext.sql(
+      """SELECT
+        |a.Year, a.month, a.Day, a.WeekNum, a.HourOfDay, a.Weekend, a.Season, a.WeekDay,
+        |a.IUCR, a.Primary_Type, a.Location_Description, a.Community_Area, a.District,
+        |a.Arrest, a.Domestic, a.Beat, a.Ward, a.FBI_Code,
+        |b.minTemp, b.maxTemp, b.meanTemp,
+        |c.PERCENT_AGED_UNDER_18_OR_OVER_64, c.PER_CAPITA_INCOME, c.HARDSHIP_INDEX,
+        |c.PERCENT_OF_HOUSING_CROWDED, c.PERCENT_HOUSEHOLDS_BELOW_POVERTY,
+        |c.PERCENT_AGED_16__UNEMPLOYED, c.PERCENT_AGED_25__WITHOUT_HIGH_SCHOOL_DIPLOMA
+        |FROM chicagoCrime a
+        |JOIN chicagoWeather b
+        |ON a.Year = b.year AND a.month = b.month AND a.Day = b.day
+        |JOIN chicagoCensus c
+        |ON a.Community_Area = c.Community_Area_Number""".stripMargin)
+
+    crimeWeather.show(5)
+  }
+}
