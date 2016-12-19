@@ -1,0 +1,24 @@
+
+import org.viz.lightning.Lightning
+import org.viz.lightning.Visualization
+import org.viz.lightning.types.Make
+import org.viz.lightning.{Visualization, Lightning}
+
+import scala.util.Random
+
+/**
+  * Created by padmac on 11/10/16.
+  */
+
+object Lightning_Demo {
+
+  def main(args:Array[String]): Unit =
+  {
+    val lgn = Lightning(host="http://public.lightning-viz.org")
+    lgn.createSession("SimpleDemo")
+    val viz = lgn.scatter(Array(1.0,2.0,3.0), Array(1.0,1.5,5.0))
+
+    println(viz.getPermalinkURL)
+
+  }
+}
