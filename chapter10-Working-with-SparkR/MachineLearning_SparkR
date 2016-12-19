@@ -1,0 +1,47 @@
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = "/home/padmac/bigdata/spark-2.0.2-bin-hadoop2.6")
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+sparkR.session(master = "spark://F01022:7077", sparkConfig = list(spark.driver.memory = "2g"))
+
+irisDF <- as.DataFrame(iris)
+
+# Fit a generalized linear model of family "gaussian" with spark.glm
+gaussianDF <- irisDF
+gaussianTestDF <- irisDF
+gaussianGLM <- spark.glm(gaussianDF, Sepal_Length ~ Sepal_Width + Species, family = "gaussian")
+
+#Model summary
+summary(gaussianGLM)
+
+# Prediction
+gaussianPredictions <- predict(gaussianGLM, gaussianTestDF)
+showDF(gaussianPredictions,5)
+
+# Fit a generalized linear model of family "binomial" with spark.glm
+binomialDF <- filter(irisDF, irisDF$Species != "setosa")
+binomialTestDF <- binomialDF
+binomialGLM <- spark.glm(binomialDF, Species ~ Sepal_Length + Sepal_Width, family = "binomial")
+
+# Model summary
+summary(binomialGLM)
+
+# Prediction
+binomialPredictions <- predict(binomialGLM, binomialTestDF)
+showDF(binomialPredictions,5)
+
+#Run KMeans
+count(irisDF)
+kmeansDF <- irisDF
+kmeansTestDF <- irisDF
+kmeansModel <- spark.kmeans(kmeansDF, ~ Sepal_Length + Sepal_Width + Petal_Length + Petal_Width,  k = 3)
+
+# Model summary
+summary(kmeansModel)
+
+# Get fitted result from the k-means model
+showDF(fitted(kmeansModel),5)
+
+# Prediction
+kmeansPredictions <- predict(kmeansModel, kmeansTestDF)
+showDF(kmeansPredictions,5)
