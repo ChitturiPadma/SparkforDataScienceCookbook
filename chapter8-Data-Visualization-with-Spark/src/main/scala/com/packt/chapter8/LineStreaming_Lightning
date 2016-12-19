@@ -1,0 +1,27 @@
+import org.viz.lightning._
+import org.viz.lightning.types._
+import org.apache.spark._
+
+object LineStreaming_Lightning {
+
+  def main(args:Array[String]): Unit = {
+    /*val conf = new SparkConf()
+        .setMaster("local[2]").setAppName("LineStreaming_Demo")
+
+    val sc = new SparkContext(conf)
+    */
+
+    val lgn = Lightning(host="http://localhost:3000")
+    lgn.createSession("MyApp")
+
+    val viz = lgn.scatterStreaming(x = Make.gaussian(n = 50, scale = 5),
+      y = Make.gaussian(n = 50, scale = 5),
+      label = Make.labels(n = 50),
+      size = Make.sizes(n = 50),
+      alpha = Make.alphas(n = 50))
+
+    println(viz.getPermalinkURL)
+
+
+  }
+}
