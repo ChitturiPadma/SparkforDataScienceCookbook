@@ -1,0 +1,122 @@
+
+import org.apache.spark.{SparkConf, SparkContext}
+import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator
+import org.deeplearning4j.eval.Evaluation
+import org.deeplearning4j.nn.api.{Updater, OptimizationAlgorithm}
+import org.deeplearning4j.nn.api.Updater._
+import org.deeplearning4j.nn.conf.{MultiLayerConfiguration, NeuralNetConfiguration}
+import org.deeplearning4j.nn.conf.layers.setup.ConvolutionLayerSetup
+import org.deeplearning4j.nn.conf.layers.{OutputLayer, DenseLayer, SubsamplingLayer, ConvolutionLayer}
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
+import org.deeplearning4j.nn.weights.WeightInit
+import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
+import org.nd4j.linalg.dataset.DataSet
+import org.nd4j.linalg.lossfunctions.LossFunctions
+import scala.util._
+import scala.collection.mutable.ListBuffer
+import org.apache.spark.storage._
+
+/**
+  * Created by padmac on 19/12/16.
+  */
+object CNN_MNIST {
+
+  def main(args:Array[String]): Unit ={
+    val nCores =2
+    val conf = new SparkConf()
+      .setMaster("spark://master:7077")
+      .setAppName("MNIST_CNN")
+      .set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION,
+        String.valueOf(true))
+    val sc = new SparkContext(conf)
+    val nChannels = 1
+    val outputNum = 10
+    val numSamples = 60000
+    val nTrain = 50000
+    val nTest = 10000
+    val batchSize = 64
+    val iterations = 1
+    val seed = 123
+    val mnistIter = new MnistDataSetIterator(1,numSamples, true)
+    val allData = new ListBuffer[DataSet]()
+    while(mnistIter.hasNext) allData.+=(mnistIter.next)
+    new Random(12345).shuffle(allData)
+    val iter = allData.iterator
+    var c =0
+    val train = new ListBuffer[DataSet]()
+    val test = new ListBuffer[DataSet]()
+    while(iter.hasNext) {
+      if(c <= nTrain) {
+        train.+=(iter.next)
+        c +=1
+      }
+      else test.+=(iter.next)
+    }
+
+    val sparkDataTrain = sc.parallelize(train)
+    sparkDataTrain.persist(StorageLevel.MEMORY_ONLY)
+    println("Building model ....")
+    val builder = new NeuralNetConfiguration.Builder()
+      .seed(seed)
+      .iterations(iterations)
+      .regularization(true).l2(0.0005)
+      .learningRate(0.01)
+      .optimizationAlgo(OptimizationAlgorithm
+        .STOCHASTIC_GRADIENT_DESCENT)
+      .updater(Updater.ADAGRAD)
+      .list(6)
+      .layer(0, new ConvolutionLayer.Builder(5, 5)
+        .nIn(nChannels)
+        .stride(1, 1)
+        .nOut(20)
+        .weightInit(WeightInit.XAVIER)
+        .activation("relu")
+        .build())
+      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer
+        .PoolingType.MAX, Array(2, 2))
+        .build())
+      .layer(2, new ConvolutionLayer.Builder(5, 5)
+        .nIn(20)
+        .nOut(50)
+
+        .stride(2,2)
+        .weightInit(WeightInit.XAVIER)
+        .activation("relu")
+        .build())
+      .layer(3, new
+          SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX,
+            Array(2, 2))
+        .build())
+      .layer(4, new DenseLayer.Builder().activation("relu")
+        .weightInit(WeightInit.XAVIER)
+        .nOut(200).build())
+      .layer(5, new OutputLayer.Builder
+      (LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+        .nOut(outputNum)
+        .weightInit(WeightInit.XAVIER)
+        .activation("softmax")
+        .build())
+      .backprop(true).pretrain(false);
+    new ConvolutionLayerSetup(builder,28,28,1);
+    val multiLayerConf:MultiLayerConfiguration= builder.build()
+    val net:MultiLayerNetwork = new
+        MultiLayerNetwork(multiLayerConf)
+    net.init()
+    net.setUpdater(null)
+    val sparkNetwork = new SparkDl4jMultiLayer(sc, net)
+    val nEpochs = 5
+    (0 until nEpochs).foreach{i =>
+      val network = sparkNetwork.fitDataSet(sparkDataTrain,
+        nCores*batchSize)
+      //Evaluate the model
+      val eval = new Evaluation()
+      for(ds <- test)
+      {
+        val output = network.output(ds.getFeatureMatrix)
+        eval.eval(ds.getLabels, output)
+      }
+      println("Statistics..."+eval.stats())
+    }
+  }
+
+}
