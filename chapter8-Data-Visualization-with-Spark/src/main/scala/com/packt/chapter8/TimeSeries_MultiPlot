@@ -1,0 +1,92 @@
+
+import org.joda.time.format.DateTimeFormat
+import org.apache.spark.sql._
+import io.continuum.bokeh._
+import org.apache.spark._
+
+object StockSource {
+
+  val formatter = DateTimeFormat.forPattern("MM/dd/yyyy")
+
+  def getSource(ticker: String, sqlContext: SQLContext) = {
+    val stockDf = sqlContext.sql(s"select stock, date, close from stocks where stock= '$ticker'")
+    stockDf.cache()
+    val dateData: Array[Double] = stockDf.select("date").collect.map(eachRow =>
+    formatter.parseDateTime(eachRow.getString(0)).getMillis().toDouble)
+    val closeData: Array[Double] = stockDf.select("close").collect.map(eachRow => eachRow.getString(0).drop(1).toDouble)
+
+    object source extends ColumnDataSource {
+    val date = column(dateData)
+    val close = column(closeData)
+    }
+    source
+   }
+  }
+
+
+object TimeSeries_MultiPlot extends App {
+
+  import StockSource.{getSource}
+
+  val conf = new SparkConf().setAppName("csvDataFrame").setMaster("local[2]")
+  val sc = new SparkContext(conf)
+  val sqlContext = new SQLContext(sc)
+
+  import sqlContext.implicits._
+  val stocks= sqlContext.read.format("com.databricks.spark.csv")
+    .option("header", "true")
+    .option("inferSchema","true").load("/home/padmac/data/dow_jones_index/dow_jones_index.csv")
+
+  stocks.registerTempTable("stocks")
+
+  val sourceObject = getSource("AA", sqlContext)
+  val line = new Line().x(sourceObject.date).y(sourceObject.close).line_color(Color.Blue).line_width(2)
+  val lineGlyph = new GlyphRenderer().data_source(sourceObject).glyph(line)
+  val xdr = new DataRange1d().sources(List(sourceObject.date))
+  val ydr = new DataRange1d().sources(List(sourceObject.close))
+
+  //Create Plot
+  val plot = new Plot().title("AA").x_range(xdr).y_range(ydr).width(800).height(400)
+
+  //Drawing x-axis and y-axis
+  val xformatter = new DatetimeTickFormatter().formats(Map(DatetimeUnits.Months -> List("%b %Y")))
+  val xAxis = new DatetimeAxis().plot(plot).formatter(xformatter).axis_label("Month")
+  val yAxis = new LinearAxis().plot(plot).axis_label("Price")
+  plot.below <<= (xAxis :: _)
+  plot.left <<= (yAxis :: _)
+  val xgrid = new Grid().plot(plot).dimension(0).axis(xAxis)
+  val ygrid = new Grid().plot(plot).dimension(1).axis(yAxis)
+
+  //Tools
+  val panTool = new PanTool().plot(plot)
+  val wheelZoomTool = new WheelZoomTool().plot(plot)
+  val previewSaveTool = new PreviewSaveTool().plot(plot)
+  val resetTool = new ResetTool().plot(plot)
+  val resizeTool = new ResizeTool().plot(plot)
+
+  val crosshairTool = new CrosshairTool().plot(plot)
+  plot.tools := List(panTool, wheelZoomTool, previewSaveTool,
+    resetTool, resizeTool, crosshairTool)
+
+
+  //Legend
+  val legends = List("AA" -> List(lineGlyph))
+  val legend = new Legend().plot(plot).legends(legends)
+
+
+
+  //Add the renderer to the plot
+  plot.renderers := List[Renderer](xAxis, yAxis, xgrid, ygrid, lineGlyph, legend)
+
+  //Creating document object
+  val document = new Document(plot)
+  val file = document.save("/home/padmac/data/TimeSeriesMultiPlot.html")
+  file.view()
+
+  //Multiple Plots
+ /* val children = List(List(microsoftPlot, bofaPlot), List(caterPillarPlot,
+    mmmPlot))
+  val grid = new GridPlot().children(children)
+  val document = new Document(grid)
+  val html = document.save("DJClosingPrices.html")*/
+}
