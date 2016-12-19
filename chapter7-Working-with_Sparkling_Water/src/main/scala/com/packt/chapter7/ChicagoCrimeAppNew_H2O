@@ -130,7 +130,7 @@ object ChicagoCrimeAppNew_H2O {
   def main(args:Array[String]): Unit = {
 
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      .setMaster("spark://master:7077")
       .setAppName("H2O_ChicagoCrimeApp")
     val sc = new SparkContext(conf)
     implicit val h2oContext = H2OContext.getOrCreate(sc)
