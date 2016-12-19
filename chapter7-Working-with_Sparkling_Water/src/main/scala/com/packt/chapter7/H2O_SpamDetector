@@ -23,7 +23,7 @@ object H2O_SpamDetector extends SparkContextSupport with ModelMetricsSupport wit
   def main(args:Array[String]): Unit = {
 
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      .setMaster("spark://master:7077")
       .setAppName("H2O_Spam_Detector")
     val sc = new SparkContext(conf)
     implicit val h2oContext = H2OContext.getOrCreate(sc)
@@ -34,7 +34,7 @@ object H2O_SpamDetector extends SparkContextSupport with ModelMetricsSupport wit
     import sqlContext.implicits._
 
     // Loading Data
-    val dataRdd = sc.textFile("/home/padmac/cookbook/Problems/smsData.txt")
+    val dataRdd = sc.textFile("hdfs://namenode:9000/smsData.txt")
       .map(l => l.split("\t")).filter(r => !r(0).isEmpty)
 
     //Extract response spam or ham
