@@ -1,0 +1,35 @@
+import org.apache.spark._
+import org.apache.spark.sql._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.DataFrameNaFunctions
+import org.apache.spark.sql.types._
+
+object MovieLens_DataAnalysis {
+
+  case class MovieLens(userId:String, movieId:String, rating:Int,
+                       timestamp:Long)
+  def main(args:Array[String]): Unit = {
+    val conf = new SparkConf()
+      .setMaster("spark://master:7077")
+      .setAppName("MovieLens_DataAnalysis")
+    val sc = new SparkContext(conf)
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+    //Loading data
+    val movieLens_data = sc.textFile("hdfs://namenode:9000/ml- 100k/u.data")
+      val movieLens_DataStructured = movieLens_data.map{record => val
+      fields = record.split("\t")
+      val userId = fields(0)
+      val movieId = fields(1)
+      val rating = fields(2).toInt
+      val timestamp = fields(3).toLong
+      MovieLens(userId, movieId, rating, timestamp)
+      }
+      val movieLens_Df=
+      sqlContext.createDataFrame(movieLens_DataStructured)
+      
+      println("Movie Lens data:")
+      movieLens_Df.show(10)
+      }
+
+}
