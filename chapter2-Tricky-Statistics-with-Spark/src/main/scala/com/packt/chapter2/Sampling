@@ -30,8 +30,7 @@ object Sampling {
       .schema(schema_Applied).load("hdfs://namenode:9000/ loan_prediction_data.csv")
       // Generating Sample data (10%) without replacement
       val sampled_Data1 = loan_Data.sample(false, 0.1)
-      println("Sample Data Row Count (without Replacement):
-      "+sampled_Data1.count)
+      println("Sample Data Row Count (without Replacement): "+sampled_Data1.count)
       // Generating Sample data (10%) with replacement
       val sampled_Data2 = loan_Data.sample(true, 0.2)
       println("Sample Data Row Count (with Replacement): "+sampled_Data2.count)
