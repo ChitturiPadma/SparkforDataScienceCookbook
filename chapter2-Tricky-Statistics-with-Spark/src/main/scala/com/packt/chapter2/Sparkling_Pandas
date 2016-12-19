@@ -1,0 +1,31 @@
+Install blas , scipy , and sparklingpandas:
+apt-get install libblas-dev liblapack-dev libatlas-base-dev
+gfortran
+pip install scipy
+pip install sparklingpandas
+
+import sparklingpandas
+ipython console -profile=pyspark
+In [1]: from pyspark import SparkConf, SparkContext, SQLContext
+In [2]: import pandas as pd
+In [3]: sqlcontext = SQLContext(sc)
+In [4]: import sparklingpandas
+
+In [5]: input = [1,2,3,4]
+In [6]: rdd = sc.parallelize(zip(range(len(input)), input))
+In [7]: frames_rdd = rdd.map(lambda x:pd.DataFrame(data=
+[x[1]],index=[x[0]]))
+
+In [8]: sqF = (frames_rdd.map(lambda f:f.applymap(lambda x:x*x)))
+In [9]: sqDFs = sqF.collect()
+In [10]: sqDF = reduce(lambda x,y:x.append(y),sqDFs)
+
+In [11]: from sparklingpandas.pcontext import PsparkContext
+In [12]: ddf = psc.read_csv()
+In [13]: schema_rdd = sqlContext.sql("SELECT panda_id, num_babies,city FROM panda_info")
+ddf = psc.from_schema_rdd(schema_rdd) //creating from schema rdd of spark SQL
+
+pandas_with_kids = ddf.dropna(subset=['num_babies'])
+sqDDF = ddf.applymap(lambda x:x*x)
+ddfFour = ddf.query("b==4")
+sqDF = sqDDF.collect()
