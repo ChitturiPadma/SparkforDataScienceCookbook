@@ -1,0 +1,47 @@
+
+import edu.stanford.nlp.ling.CoreAnnotations
+import edu.stanford.nlp.neural.rnn.RNNCoreAnnotations
+import edu.stanford.nlp.sentiment.
+SentimentCoreAnnotations
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
+import java.util._
+import edu.stanford.nlp.pipeline.{Annotation, StanfordCoreNLP}
+import scala.collection.JavaConverters._
+
+object SentimentAnalysis_StanfordAPI {
+
+  def main(args:Array[String]): Unit =
+  {
+    val conf = new SparkConf()
+      .setMaster("spark:master:7077")
+      .setAppName("SentimentAnalysis_Demo")
+      .set("spark.serializer","org.apache.spark.serializer.KryoSerializer")
+      val sc = new SparkContext(conf)
+      val textInput = sc.makeRDD(Array("""An overly sentimental film with a
+      somewhat problematic message, but its sweetness and charm are
+      occasionally enough to approximate true depth and grace.",
+      "Sam was an odd sort of fellow. Not prone to angry and not prone to
+      merriment. Overall, an odd fellow.", "Mary thought that custard pie
+      was the best pie in the world. However, she loathed chocolate pie"""), 1)
+      val sentimentText = scala.collection.immutable.List("Very Negative", "Negative", "Neutral", "Positive", "Very Positive")
+      val props = new Properties()
+      props.put("annotators", "tokenize, ssplit, parse, sentiment")
+      val pipeline = new StanfordCoreNLP(props)
+      val broadCastedPipeline = sc.broadcast(pipeline)
+      val broadCastedSentimentText = sc.broadcast(sentimentText)
+      val scoredSentiments = textInput.flatMap{
+      record => val annotation = new Annotation(record)
+      pipeline.annotate(annotation)
+      val sentenceList =
+      annotation.get(classOf[CoreAnnotations.SentencesAnnotation])
+      .asScala.toList; sentenceList.map{sentence =>
+      val tree  =sentence.get(classOf[SentimentCoreAnnotations.
+      SentimentAnnotatedTree])
+      val score = RNNCoreAnnotations.getPredictedClass(tree)
+      broadCastedSentimentText.value(score)
+      }
+      }
+      scoredSentiments.foreach(println)
+      }
+}
