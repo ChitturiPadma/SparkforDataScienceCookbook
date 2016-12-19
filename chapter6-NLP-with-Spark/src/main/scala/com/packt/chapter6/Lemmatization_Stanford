@@ -1,0 +1,40 @@
+import java.util._
+import edu.stanford.nlp.ling.CoreAnnotations._
+import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation
+import edu.stanford.nlp.ling.CoreAnnotations
+.LemmaAnnotation
+import edu.stanford.nlp.pipeline.StanfordCoreNLP
+import org.apache.spark.{SparkConf, SparkContext}
+import scala.collection.JavaConverters._
+
+object Lemmatization_Stanford {
+
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf()
+      .setMaster("spark:master:7077")
+      .setAppName("Lemmatization_Demo")
+      .set("spark.serializer",
+        "org.apache.spark.serializer.KryoSerializer")
+    val sc = new SparkContext(conf)
+    val textInput = sc.makeRDD(Array("Hi Padma ! How are you ?", 
+      "He saw him in Boston at McKenzie's pub. At 3:00 where he", 
+      "He was the last person. To see Fred."), 1)
+    val props = new Properties()
+    props.put("annotators", "tokenize, ssplit, pos, lemma")
+    val pipeline = new StanfordCoreNLP(props)
+    val broadCastedPipeline = sc.broadcast(pipeline)
+    val lemmas = textInput.flatMap{
+      record =>
+        val document = broadCastedPipeline.value.process(record)
+        val sentences =
+          document.get(classOf[SentencesAnnotation]).asScala.toList
+        val tokens = sentences.flatMap{sentence =>
+          sentence.get(classOf[TokensAnnotation]).asScala.toList}
+        tokens.map{token =>
+          val word = token.get(classOf[TextAnnotation])
+          val lemma = token.get(classOf[LemmaAnnotation])
+          (word,lemma)}
+    }
+    lemmas.foreach(println)
+  }
+}
