@@ -1,0 +1,50 @@
+Install IPython:
+
+sudo pip install ipython
+ipython profile create pyspark
+vim ~/.ipython/profile_pyspark/startup/00-pyspark-setup.py
+import os
+import sys
+spark_home = os.environ.get('SPARK_HOME', None)
+if not spark_home:
+raise ValueError('SPARK_HOME environment variable is not set')
+sys.path.insert(0, os.path.join(spark_home, 'python'))
+sys.path.insert(0, os.path.join(spark_home, 'python/lib/py4j-0.9-
+src.zip'))
+execfile(os.path.join(spark_home, 'python/pyspark/shell.py'))
+
+Edit ~/.ipython/profile_pyspark/ipython_config.py
+c = get_config()
+c.NotebookApp.ip = '*'
+c.NotebookApp.open_browser = False
+c.NotebookApp.port = 8880
+
+Install py4j:
+sudo pip install py4j
+
+Create Environment variables:
+export PYTHONPATH=
+$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.9-src.zip
+export PYTHONSTARTUP=$SPARK_HOME/python/pyspark/shell.py
+export PYSPARK_SUBMIT_ARGS="--master
+spark://master: pyspark-shell"
+
+Create a kernel with the following content:
+vim ~/.ipython/kernels/pyspark/kernel.json
+{
+"display_name": "pySpark (Spark 1.6.0)",
+"language": "python",
+"argv": [
+"/usr/bin/python2",
+"-m",
+"IPython.kernel",
+"-f",
+"{connection_file}"
+]
+}
+
+Install IPython console:
+ipython console -profile=pyspark
+
+Install IPython notebook:
+ipython notebook --profile=pyspark
