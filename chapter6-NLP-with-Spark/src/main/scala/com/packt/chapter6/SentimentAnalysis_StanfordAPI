@@ -14,7 +14,7 @@ object SentimentAnalysis_StanfordAPI {
   def main(args:Array[String]): Unit =
   {
     val conf = new SparkConf()
-      .setMaster("spark:master:7077")
+      .setMaster("spark://master:7077")
       .setAppName("SentimentAnalysis_Demo")
       .set("spark.serializer","org.apache.spark.serializer.KryoSerializer")
       val sc = new SparkContext(conf)
