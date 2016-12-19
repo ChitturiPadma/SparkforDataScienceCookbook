@@ -13,8 +13,9 @@ libraryDependencies ++= Seq(
     "org.apache.spark" %% "spark-streaming" % "1.6.2",
     "org.apache.spark" %% "spark-mllib" % "1.6.2",
     "com.databricks" %% "spark-csv" % "1.5.0",
-    "ai.h2o" % "sparkling-water-core_2.10" % "1.6.4",
-    "ai.h2o" % "sparkling-water-ml_2.10" % "1.6.4"  
+    "ai.h2o" % "sparkling-water-core_2.10" % "1.6.8",
+    "ai.h2o" % "sparkling-water-ml_2.10" % "1.6.8",
+     "ai.h2o" % "h2o-genmodel" % "3.10.0.7"		
 )
 
 assemblySettings
