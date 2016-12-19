@@ -1,0 +1,16 @@
+git clone git@github.com:lightning-viz/lightning.git
+npm install
+
+wget -qO-
+https://raw.githubusercontent.com/creationix/nvm/v0.32.0/
+install.sh | bash
+source ~/.bashrc
+export NVM_NODEJS_ORG_MIRROR=http://nodejs.org/dist
+
+nvm install 4.0
+npm install sqlite3
+cd lightning/
+npm start (starts the lightning server)
+
+git clone https://github.com/lightning-viz/lightning-scala.git
+sbt assembly
