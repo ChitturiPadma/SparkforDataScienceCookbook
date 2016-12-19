@@ -1,0 +1,14 @@
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+Sys.setenv(SPARK_HOME = "~/bigdata/spark-1.6.0-bin-hadoop2.6")
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"),"R", "lib")))
+sc <- sparkR.init(master = "local[*]", sparkEnvir =
+list(spark.driver.memory="2g"))
+sqlContext <- sparkRSQL.init(sc)
+people <- read.df(sqlContext, "~/<path>/people.json","json")
+registerTempTable(people, "people")
+teenagers <- sql(sqlContext, "SELECT name, age FROM people WHERE
+age >= 10)
+head(teenagers)
+cache(teenagers)
+system.time(count(teenagers))
